@@ -22,6 +22,7 @@ namespace GitHub.InlineReviews.Services
     [PartCreationPolicy(CreationPolicy.Shared)]
     public class PullRequestSessionManager : ReactiveObject, IPullRequestSessionManager
     {
+        static Task unused;
         readonly IPullRequestService service;
         readonly IPullRequestSessionService sessionService;
         readonly IRepositoryHosts hosts;
@@ -34,10 +35,8 @@ namespace GitHub.InlineReviews.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="PullRequestSessionManager"/> class.
         /// </summary>
-        /// <param name="gitService">The git service to use.</param>
-        /// <param name="gitClient">The git client to use.</param>
-        /// <param name="diffService">The diff service to use.</param>
         /// <param name="service">The pull request service to use.</param>
+        /// <param name="sessionService">The session service to use.</param>
         /// <param name="hosts">The repository hosts.</param>
         /// <param name="teamExplorerService">The team explorer service to use.</param>
         [ImportingConstructor]
@@ -46,6 +45,24 @@ namespace GitHub.InlineReviews.Services
             IPullRequestSessionService sessionService,
             IRepositoryHosts hosts,
             ITeamExplorerServiceHolder teamExplorerService)
+            : this(service, sessionService, hosts, teamExplorerService, out unused)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PullRequestSessionManager"/> class.
+        /// </summary>
+        /// <param name="service">The pull request service to use.</param>
+        /// <param name="sessionService">The session service to use.</param>
+        /// <param name="hosts">The repository hosts.</param>
+        /// <param name="teamExplorerService">The team explorer service to use.</param>
+        /// <param name="completion">A task used to track the completion of initialization.</param>
+        PullRequestSessionManager(
+            IPullRequestService service,
+            IPullRequestSessionService sessionService,
+            IRepositoryHosts hosts,
+            ITeamExplorerServiceHolder teamExplorerService,
+            out Task completion)
         {
             Guard.ArgumentNotNull(service, nameof(service));
             Guard.ArgumentNotNull(sessionService, nameof(sessionService));
@@ -56,7 +73,10 @@ namespace GitHub.InlineReviews.Services
             this.sessionService = sessionService;
             this.hosts = hosts;
             this.teamExplorerService = teamExplorerService;
-            teamExplorerService.Subscribe(this, x => RepoChanged(x).Forget());
+
+            Task task = null;
+            teamExplorerService.Subscribe(this, x => task = RepoChanged(x));
+            completion = task;
         }
 
         /// <inheritdoc/>
@@ -64,6 +84,29 @@ namespace GitHub.InlineReviews.Services
         {
             get { return currentSession; }
             private set { this.RaiseAndSetIfChanged(ref currentSession, value); }
+        }
+
+        /// <summary>
+        /// Creates a fully initialized <see cref="PullRequestSessionManager"/>.
+        /// </summary>
+        /// <param name="service">The pull request service to use.</param>
+        /// <param name="sessionService">The session service to use.</param>
+        /// <param name="hosts">The repository hosts.</param>
+        /// <param name="teamExplorerService">The team explorer service to use.</param>
+        /// <param name="completion">A task used to track the completion of initialization.</param>
+        /// <returns>
+        /// A task returning the fully initialized instance.
+        /// </returns>
+        public static async Task<PullRequestSessionManager> Create(
+            IPullRequestService service,
+            IPullRequestSessionService sessionService,
+            IRepositoryHosts hosts,
+            ITeamExplorerServiceHolder teamExplorerService)
+        {
+            Task task;
+            var result = new PullRequestSessionManager(service, sessionService, hosts, teamExplorerService, out task);
+            await task;
+            return result;
         }
 
         /// <inheritdoc/>

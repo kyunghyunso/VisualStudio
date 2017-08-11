@@ -22,9 +22,9 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void CreatesSessionForCurrentBranch()
+        public async Task CreatesSessionForCurrentBranch()
         {
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -35,12 +35,12 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void CurrentSessionIsNullIfNoPullRequestForCurrentBranch()
+        public async Task CurrentSessionIsNullIfNoPullRequestForCurrentBranch()
         {
             var service = CreatePullRequestService();
             service.GetPullRequestForCurrentBranch(null).ReturnsForAnyArgs(Observable.Empty<Tuple<string, int>>());
 
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 service,
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -50,11 +50,11 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void CurrentSessionChangesWhenBranchChanges()
+        public async Task CurrentSessionChangesWhenBranchChanges()
         {
             var service = CreatePullRequestService();
             var teService = new FakeTeamExplorerServiceHolder(CreateRepositoryModel());
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 service,
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -69,10 +69,10 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void CurrentSessionChangesWhenRepoChanged()
+        public async Task CurrentSessionChangesWhenRepoChanged()
         {
             var teService = new FakeTeamExplorerServiceHolder(CreateRepositoryModel());
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -86,10 +86,10 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void RepoChangedDoesntCreateNewSessionIfNotNecessary()
+        public async Task RepoChangedDoesntCreateNewSessionIfNotNecessary()
         {
             var teService = new FakeTeamExplorerServiceHolder(CreateRepositoryModel());
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -103,10 +103,10 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void RepoChangedHandlesNullRepository()
+        public async Task RepoChangedHandlesNullRepository()
         {
             var teService = new FakeTeamExplorerServiceHolder(CreateRepositoryModel());
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -120,7 +120,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
         [Fact]
         public async Task GetSessionReturnsAndUpdatesCurrentSessionIfNumbersMatch()
         {
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -136,7 +136,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
         [Fact]
         public async Task GetSessionReturnsNewSessionForPullRequestWithDifferentNumber()
         {
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -153,7 +153,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
         [Fact]
         public async Task GetSessionReturnsNewSessionForPullRequestWithDifferentBaseOwner()
         {
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -170,7 +170,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
         [Fact]
         public async Task GetSessionReturnsSameSessionEachTime()
         {
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -188,7 +188,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
         {
             WeakReference<IPullRequestSession> weakSession = null;
 
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService(),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -220,7 +220,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
 
             service.GetPullRequestForCurrentBranch(null).ReturnsForAnyArgs(Observable.Empty<Tuple<string, int>>());
 
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 service,
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
@@ -239,7 +239,7 @@ namespace GitHub.InlineReviews.UnitTests.Services
         }
 
         [Fact]
-        public void ReadsPullRequestFromCorrectFork()
+        public async Task ReadsPullRequestFromCorrectFork()
         {
             var service = CreatePullRequestService();
             service.GetPullRequestForCurrentBranch(null).ReturnsForAnyArgs(
@@ -247,20 +247,20 @@ namespace GitHub.InlineReviews.UnitTests.Services
 
             var repositoryHosts = CreateRepositoryHosts();
             var repositoryModel = CreateRepositoryModel();
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 service,
                 Substitute.For<IPullRequestSessionService>(),
                 repositoryHosts,
                 new FakeTeamExplorerServiceHolder(repositoryModel));
 
             var modelService = repositoryHosts.LookupHost(HostAddress.Create(repositoryModel.CloneUrl)).ModelService;
-            modelService.Received(1).GetPullRequest("fork", "repo", 15);
+            await modelService.Received(1).GetPullRequest("fork", "repo", 15);
         }
 
         [Fact]
-        public void CreatesSessionWithCorrectRepositoryOwner()
+        public async Task CreatesSessionWithCorrectRepositoryOwner()
         {
-            var target = new PullRequestSessionManager(
+            var target = await PullRequestSessionManager.Create(
                 CreatePullRequestService("this-owner"),
                 Substitute.For<IPullRequestSessionService>(),
                 CreateRepositoryHosts(),
